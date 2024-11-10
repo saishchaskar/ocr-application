@@ -1,0 +1,37 @@
+name: Deploy to Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main  # or the branch you want to use
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCLOUD_SA_KEY }}
+
+      - name: Authenticate Docker
+        run: |
+          echo ${{ secrets.GCLOUD_SA_KEY }} | docker login -u _json_key --password-stdin https://gcr.io
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA .
+          docker push gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ocr-backend \
+            --image gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA \
+            --region asia-south1 \
+            --platform managed \
+            --allow-unauthenticated
