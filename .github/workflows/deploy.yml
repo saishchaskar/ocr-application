@@ -26,7 +26,7 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA .
+          docker build -t gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA ./backend
           docker push gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA
 
       - name: Deploy to Cloud Run
