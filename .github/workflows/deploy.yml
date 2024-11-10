@@ -10,29 +10,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code from the repository
       - name: Checkout code
-        uses: actions/checkout@v3  # Use latest version
+        uses: actions/checkout@v3  # Use the latest version of actions/checkout
 
+      # Step 2: Authenticate with Google Cloud using the service account key stored in GitHub secrets
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCLOUD_SA_KEY }}  # Use updated input format
+          credentials_json: ${{ secrets.GCLOUD_SA_KEY }}  # Use the secret that stores your service account credentials
 
+      # Step 3: Set up Google Cloud SDK
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
-          install_components: "beta"  # Optional: to install specific components like `gcloud beta`
+          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}  # Google Cloud project ID from secrets
+          install_components: "beta"  # Install optional components, like gcloud beta
 
+      # Step 4: Build and Push Docker Image to Google Container Registry
       - name: Build and Push Docker Image
         run: |
+          # Build the Docker image for the backend
           docker build -t gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA ./backend
+          
+          # Push the built image to Google Container Registry
           docker push gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA
 
+      # Step 5: Deploy the Docker image to Google Cloud Run
       - name: Deploy to Cloud Run
         run: |
+          # Deploy the image to Cloud Run
           gcloud run deploy ocr-backend \
             --image gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/ocr-app:$GITHUB_SHA \
             --region asia-south1 \
             --platform managed \
-            --allow-unauthenticated
+            --allow-unauthenticated \
+            --memory 1Gi  # Optional: Set memory limit (adjust as per your app needs)
+            --concurrency 80  # Optional: Set max concurrency (adjust as per your app needs)
